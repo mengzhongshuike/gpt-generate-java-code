@@ -14,5 +14,6 @@ public class LockFreeQueueTest {
         Assert.assertEquals("1", lockFreeQueue.dequeue());
         Assert.assertEquals("2", lockFreeQueue.dequeue());
         Assert.assertEquals("3", lockFreeQueue.dequeue());
+        Assert.assertNull(lockFreeQueue.dequeue());
     }
 }
