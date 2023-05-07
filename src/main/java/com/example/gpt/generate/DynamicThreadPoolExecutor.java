@@ -31,6 +31,8 @@ public class DynamicThreadPoolExecutor extends ThreadPoolExecutor {
         this.maxQueueSize = maxQueueSize;
         this.rejectedExecutionHandler = rejectedExecutionHandler;
 
+        this.prestartAllCoreThreads();
+
         // Start a periodic task to adjust the pool size
         Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(this::adjustPoolSize, adjustPeriod,
                 adjustPeriod, unit);
@@ -69,53 +71,22 @@ public class DynamicThreadPoolExecutor extends ThreadPoolExecutor {
             int requiredThreads = super.getQueue().size();
             int newCorePoolSize = Math.max(activeThreads + requiredThreads, super.getCorePoolSize());
 
-            if (newCorePoolSize <= maxThreads) {
+            if (newCorePoolSize <= maxThreads && newCorePoolSize > super.getCorePoolSize()) {
                 super.setCorePoolSize(newCorePoolSize);
             }
         } else if (utilization <= (utilizationThreshold / 2) && super.getPoolSize() < super.getCorePoolSize()) {
             int requiredThreads = super.getQueue().size();
-            int newCorePoolSize = Math.max(activeThreads + requiredThreads, super.getCorePoolSize());
+            int newCorePoolSize = Math.min(activeThreads + requiredThreads, super.getCorePoolSize());
 
-            if (newCorePoolSize > super.getCorePoolSize()) {
+            if (newCorePoolSize < super.getCorePoolSize()) {
                 super.setCorePoolSize(newCorePoolSize);
             }
         }
     }
 
-    @Override
-    protected <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
-        return new FutureTask<>(callable) {
-            @Override
-            public boolean cancel(boolean mayInterruptIfRunning) {
-                return super.cancel(mayInterruptIfRunning);
-            }
-
-            @Override
-            protected void done() {
-                super.done();
-            }
-        };
-    }
-
-    @Override
-    protected <T> RunnableFuture<T> newTaskFor(Runnable runnable, T value) {
-        return new FutureTask<>(runnable, value) {
-            @Override
-            public boolean cancel(boolean mayInterruptIfRunning) {
-                return super.cancel(mayInterruptIfRunning);
-            }
-
-            @Override
-            protected void done() {
-                super.done();
-            }
-        };
-    }
-
-
     public static void main(String[] args) {
         DynamicThreadPoolExecutor executor = new DynamicThreadPoolExecutor(5, 100, 1, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<>(30), Executors.defaultThreadFactory(), 0.5, 1, 100,
+                new LinkedBlockingQueue<>(10), Executors.defaultThreadFactory(), 0.1, 1, 100,
                 new ThreadPoolExecutor.AbortPolicy());
         // Submit some tasks to the pool
         for (int i = 0; i < 50; i++) {
