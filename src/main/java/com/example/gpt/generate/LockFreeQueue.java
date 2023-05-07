@@ -2,6 +2,11 @@ package com.example.gpt.generate;
 
 import java.util.concurrent.atomic.AtomicMarkableReference;
 
+/**
+ * 使用了AtomicMarkableReference来确保在一个原子操作中同时更新引用和标记，从而避免ABA问题。
+ * 在dequeue方法中，我们先检查队列是否为空，然后再尝试出队元素，这样使代码更易理解。
+ * @param <T>
+ */
 public class LockFreeQueue<T> {
     private final AtomicMarkableReference<Node<T>> head;
     private final AtomicMarkableReference<Node<T>> tail;
