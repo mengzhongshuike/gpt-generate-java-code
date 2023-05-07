@@ -62,18 +62,21 @@ public class DynamicThreadPoolExecutor extends ThreadPoolExecutor {
         int maxThreads = maxThreadCount;
         double utilization = (double) activeThreads / maxThreads;
 
-        if (utilization > utilizationThreshold && activeThreads >= super.getCorePoolSize()) {
+        System.out.printf("utilization = %s, utilizationThreshold = %s, activeThreads = %s, maxThreads = %s, getCorePoolSize = %s, getPoolSize = %s%n",
+                utilization, utilizationThreshold, activeThreads, maxThreads, super.getCorePoolSize(), super.getPoolSize());
+
+        if (utilization >= utilizationThreshold && activeThreads >= super.getCorePoolSize()) {
             int requiredThreads = super.getQueue().size();
             int newCorePoolSize = Math.max(activeThreads + requiredThreads, super.getCorePoolSize());
 
             if (newCorePoolSize <= maxThreads) {
                 super.setCorePoolSize(newCorePoolSize);
             }
-        } else if (utilization < utilizationThreshold / 2 && super.getPoolSize() > super.getCorePoolSize()) {
+        } else if (utilization <= (utilizationThreshold / 2) && super.getPoolSize() < super.getCorePoolSize()) {
             int requiredThreads = super.getQueue().size();
             int newCorePoolSize = Math.max(activeThreads + requiredThreads, super.getCorePoolSize());
 
-            if (newCorePoolSize >= super.getCorePoolSize()) {
+            if (newCorePoolSize > super.getCorePoolSize()) {
                 super.setCorePoolSize(newCorePoolSize);
             }
         }
@@ -111,8 +114,8 @@ public class DynamicThreadPoolExecutor extends ThreadPoolExecutor {
 
 
     public static void main(String[] args) {
-        DynamicThreadPoolExecutor executor = new DynamicThreadPoolExecutor(5, 10, 1, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<>(10000), Executors.defaultThreadFactory(), 0.5, 5, 100,
+        DynamicThreadPoolExecutor executor = new DynamicThreadPoolExecutor(5, 100, 1, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(30), Executors.defaultThreadFactory(), 0.5, 1, 100,
                 new ThreadPoolExecutor.AbortPolicy());
         // Submit some tasks to the pool
         for (int i = 0; i < 50; i++) {
@@ -120,10 +123,11 @@ public class DynamicThreadPoolExecutor extends ThreadPoolExecutor {
             executor.submit(() -> {
                 System.out.println("Task"  + finalI + " executed by thread " + Thread.currentThread().getName());
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(3000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
+                System.out.println("core pool size: " + executor.getCorePoolSize());
             });
         }
         executor.shutdown();
